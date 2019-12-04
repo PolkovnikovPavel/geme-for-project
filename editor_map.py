@@ -62,6 +62,7 @@ def create_all_objects():
 
     image = get_bg_tool_bar_map((200, 1005))
     tool_bar_map = Window(screen, image, 0, 0, 200, 1005, 3)
+    tool_bar_map.mod = False
 
     count_btns_for_tool_bar_map = 46
     for i in range(count_btns_for_tool_bar_map):

@@ -465,6 +465,7 @@ class Window(Object):
         self.column_count = column_count
         self.visibility = True
         self.paging = False
+        self.mod = True
         self.objects = []
         self.shift_y = 0
         self.width_object = 70
@@ -482,6 +483,21 @@ class Window(Object):
 
     def pag(self, y):
         self.shift_y = y
+        if self.mod:   # следующие действия делают так,
+            # чтоб объекты не выходили за границы экрана
+            if self.shift_y > 0:
+                self.shift_y = 0
+            if ((len(self.objects) // self.column_count) + 1) >= (
+                    self.height // self.width_object):
+
+                if self.shift_y < -((((len(self.objects) // self.column_count) + 1) - (
+                        self.height // self.width_object))) * self.width_object:
+
+                    self.shift_y = -((((len(self.objects) // self.column_count) + 1) - (
+                            self.height // self.width_object))) * self.width_object
+            else:
+                self.shift_y = 0
+
         for i in range(len(self.objects)):
             object = self.objects[i]
             y = (i // self.column_count) * self.width_object + self.shift_y + 5
@@ -579,4 +595,17 @@ class Player:
                                       (self.y - map_y_on_main_map) * zoom + map_y - self.height // 2))
 
 
+class Thing:
+    def __init__(self, canvas, id):
+        self.canvas = canvas
+        self.image = None
 
+    def draw(self, x, y):
+        self.canvas.blit(self.image, (x, y))
+
+
+class Inventory:
+    def __init__(self, canvas, bg_image):
+        self.canvas = canvas
+        self.bg_image = bg_image
+        self.visibility = False
