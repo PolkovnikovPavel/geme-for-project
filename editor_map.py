@@ -66,9 +66,9 @@ def create_all_objects():
 
     count_btns_for_tool_bar_map = 46
     for i in range(count_btns_for_tool_bar_map):
-        name = 'images/btn_toolbar_' + str(i) + '.png'
+        name = 'images/editor/btn_toolbar_' + str(i) + '.png'
         image = get_free_image(name, (50, 50))
-        name = 'images/btn2_toolbar_' + str(i) + '.png'
+        name = 'images/editor/btn2_toolbar_' + str(i) + '.png'
         image_2 = get_free_image(name, (50, 50))
 
         btn = Button(screen, image, 0, 0, 50, 50, change_parametrs, image_2)

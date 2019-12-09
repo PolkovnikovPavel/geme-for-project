@@ -90,6 +90,46 @@ def get_image_player_on_mao(size):
     return image
 
 
+def get_image_main_objectsbar(size):
+    image = Image.open('images/main_objectsbar.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+def get_image_main_btnbar(size):
+    image = Image.open('images/main_btnbar.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+def get_bg_for_inventory(size):
+    image = Image.open('images/bg_for_inventiry.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+def get_image_btn_for_main_map_window(size):
+    image = Image.open('images/btn_for_main_map_window.jpg')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
 def get_map(size, mod=0):
     map = Image.open('images/map.png')
     map = map.resize(size, Image.ANTIALIAS)

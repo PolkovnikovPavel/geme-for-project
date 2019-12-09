@@ -7,6 +7,12 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 0, 255)
+width, height = 0, 0
+
+
+def install_size(size):
+    global width, height
+    width, height = size
 
 
 def change_parametrs(id):
@@ -248,6 +254,16 @@ def change_parametrs(id):
     return parametrs
 
 
+def ps_height(percent):
+    percent = percent / 100
+    return int(height * percent)
+
+
+def ps_width(percent):
+    percent = percent / 100
+    return int(width * percent)
+
+
 class Object:
     def __init__(self, canvas, image, x, y, width, height):
         self.canvas = canvas
@@ -273,6 +289,20 @@ class Object:
     def show(self):
         if self.visibility:
             self.canvas.blit(self.image, (self.x, self.y))
+
+
+class Text(Object):
+    def __init__(self, canvas, x, y, text, font):
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        self.text = text
+        self.font = font
+        self.visibility = True
+
+    def show(self):
+        text = self.font.render(str(self.text), 1, WHITE)
+        self.canvas.blit(text, (self.x, self.y))
 
 
 class Button(Object):
@@ -538,6 +568,8 @@ class Player:
         self.poison = 0
         self.exhaustion = 0
         self.radiation = 0
+        self.temperature = 0
+        self.bleeding = 0
         self.armor = 0
         self.xp_chemistry = 0
         self.xp_survival = 0
@@ -605,7 +637,16 @@ class Thing:
 
 
 class Inventory:
-    def __init__(self, canvas, bg_image):
+    def __init__(self, canvas, bg_image, player):
         self.canvas = canvas
         self.bg_image = bg_image
+        self.heft = 15000
+        self.player = player
         self.visibility = False
+
+    def get_ps_of_load(self):
+        return int(100 * self.heft / self.player.max_heft)
+
+    def show(self):
+        if self.visibility:
+            self.canvas.blit(self.bg_image, (0, ps_height(5.6)))
