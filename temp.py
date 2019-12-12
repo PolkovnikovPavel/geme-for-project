@@ -8,20 +8,91 @@ def exit(*args):
     global running
     running = False
 
-def save(*args):
-    pass
+
+def start_new_game(*args):
+    description_map = open('map/description_map.txt', 'w')
+    with open('map/start_description_map.txt', 'r') as f:
+        text = f.read()
+    description_map.write(text)
+    description_map.close()
+
+    description_player = open('data/SaveGame.txt', 'w')
+    text = '''0;100;100;0;0;100;0;36.6;50000;0;0;0;0;0;1000;1000;0;1.5;3;0;0;4;0;0;622080000</>
+21;30;0, 33;5;720, 26;2;0, 25;1;0, 28;1;19000, 4;40;0</>'''
+    description_player.write(text)
+    description_player.close()
+    start()
+
+
+def continue_game(*args):
+    if os.path.exists('map/description_map.txt'):
+        start()
+    else:
+        start_new_game()
+
+
+def save():
+    description_player = open('data/SaveGame.txt', 'w')
+    text = ''
+    text += str(int(player.exhaustion)) + ';'
+    text += str(int(player.hunger)) + ';'
+    text += str(int(player.water)) + ';'
+    text += str(int(player.poison)) + ';'
+    text += str(int(player.radiation)) + ';'
+    text += str(int(player.energy)) + ';'
+    text += str(int(player.bleeding)) + ';'
+    text += str(player.temperature) + ';'
+    text += str(player.max_heft) + ';'
+
+    text += str(player.armor) + ';'
+    text += str(player.xp_chemistry) + ';'
+    text += str(player.xp_survival) + ';'
+    text += str(player.xp_mechanics) + ';'
+    text += str(player.xp_sewing) + ';'
+
+    text += str(player.x) + ';'
+    text += str(player.y) + ';'
+
+    text += str(player.change_exhaustion) + ';'
+    text += str(player.change_hunger) + ';'
+    text += str(player.change_water) + ';'
+    text += str(player.change_poison) + ';'
+    text += str(player.change_radiation) + ';'
+    text += str(player.change_energy) + ';'
+    text += str(player.change_bleeding) + ';'
+    text += str(player.change_temperature) + ';'
+
+    text += str(int(game_time.num_time)) + '</>\n'
+    text += inventory.get_text_for_saving()
+
+    description_player.write(text)
+    description_player.close()
 
 
 def start(*args):
-    global type_window
+    global type_window, inventory
     for button in objects_main['objects']:
         button.visibility = False
     for object in objects_main['buttons']:
         object.visibility = False
     main_map.visibility = True
+    inventory = Inventory(screen, None, player, parametrs=open_file())
+    inventory.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
+    player.set_parametrs(open_file())
+    update_map()
+
     type_window = 'main'
 
 def show_and_change_all_options():
+    texts_of_options_player[0].text = int(player.exhaustion)
+    texts_of_options_player[1].text = int(player.hunger)
+    texts_of_options_player[2].text = int(player.water)
+    texts_of_options_player[3].text = int(player.poison)
+    texts_of_options_player[4].text = int(player.radiation)
+    texts_of_options_player[5].text = int(player.energy)
+    texts_of_options_player[6].text = inventory.get_ps_of_load()
+    texts_of_options_player[7].text = int(player.bleeding)
+    texts_of_options_player[8].text = player.temperature
     for text in texts_of_options_player:
         text.show()
 
@@ -29,7 +100,32 @@ def show_and_change_all_options():
 def opening_inventory(*args):
     global type_window
     inventory.visibility = True
+    player.stop()
     type_window = 'inventory'
+
+
+def opening_quests(*args):
+    global type_window
+    player.stop()
+    type_window = 'quests'
+
+
+def opening_statistics(*args):
+    global type_window
+    player.stop()
+    type_window = 'statistics'
+
+
+def opening_main_window(*args):
+    global type_window
+    player.stop()
+    save()
+    for button in objects_main['objects']:
+        button.visibility = True
+    for object in objects_main['buttons']:
+        object.visibility = True
+    main_map.visibility = False
+    type_window = 'main_window'
 
 
 def open_map(*args):
@@ -89,9 +185,6 @@ def update_image_map():
 def create_all_objects():
     global main_map, BOARD_MAP, parametrs, tool_bar_map, zoom_images, player
     global texts_of_options_player
-    install_size(size)
-
-    inventory.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
 
     image = get_bg_main_window(size)
     bg_main_window = Object(screen, image, 0, 0, *size)
@@ -102,8 +195,13 @@ def create_all_objects():
 
     image = get_btn_start_main((200, 50))
     image_2 = get_btn_start_main_click((200, 50))
-    btn_start_main = Button(screen, image, width / 2 - 100, height / 2 + 200,
-                           200, 50, start, image_2)
+    btn_continue_game_main = Button(screen, image, width / 2 - 100, height / 2 + 200,
+                           200, 50, continue_game, image_2)
+
+    image = get_image_btn_new_start_main((200, 50))
+    image_2 = get_image_btn_new_start_main_click((200, 50))
+    btn_start_new_main = Button(screen, image, width / 2 - 100, height / 2 + 100,
+                            200, 50, start_new_game, image_2)
 
     image = get_pygame_image(image_map)
     main_map = Object(screen, image, map_x, map_y, 3906 * zoom, 2047 * zoom)
@@ -111,18 +209,22 @@ def create_all_objects():
 
     objects_main['objects'].append(bg_main_window)
     objects_main['buttons'].append(btn_exit_main)
-    objects_main['buttons'].append(btn_start_main)
+    objects_main['buttons'].append(btn_continue_game_main)
+    objects_main['buttons'].append(btn_start_new_main)
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
     btn = Button(screen, image, 0, ps_height(89.6), ps_width(14.2), ps_height(9.9))
+    btn.add_function(opening_main_window)
     objects_map['buttons'].append(btn)
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
     btn = Button(screen, image, ps_width(14.2), ps_height(89.6), ps_width(14.2), ps_height(9.9))
+    btn.add_function(opening_statistics)
     objects_map['buttons'].append(btn)
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
     btn = Button(screen, image, ps_width(28.6), ps_height(89.6), ps_width(14.2), ps_height(9.9))
+    btn.add_function(opening_quests)
     objects_map['buttons'].append(btn)
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
@@ -154,7 +256,7 @@ def create_all_objects():
     objects_map['objects'].append(main_btn_bar)
 
     texts_of_options_player = []
-    font = pygame.font.Font(None, 40)
+    font = pygame.font.Font(None, ps_width(2.5))
 
     text = Text(screen, ps_width(10), 15, player.exhaustion, font)
     texts_of_options_player.append(text)
@@ -223,7 +325,10 @@ size = width, height
 print(size)
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (30, 30)
 screen = pygame.display.set_mode(size)
-player = Player(screen, player_x, player_y)
+install_size(size)
+
+game_time = GameTime(0, screen)
+player = Player(screen, player_x, player_y, game_time)
 inventory = Inventory(screen, None, player)
 
 create_all_objects()
@@ -241,6 +346,8 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+            save()
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
             for button in objects_main['buttons']:
@@ -276,6 +383,22 @@ while running:
 
                     timer_between_clicks = time.time()
 
+            if type_window == 'inventory':
+                if event.button == 5:  # скрол вниз
+                    if inventory.window.check_tip(x, y):
+                        inventory.window.pag(inventory.window.shift_y - 50)
+
+                if event.button == 4:  # скрол вниз
+                    if inventory.window.check_tip(x, y):
+                        inventory.window.pag(inventory.window.shift_y + 50)
+
+                if event.button == 1:   # левое нажатие мыши
+                    if inventory.window.check_tip(x, y):
+                        inventory.window.paging = True
+
+
+
+
 
         if event.type == pygame.MOUSEBUTTONUP:
             x, y = event.pos
@@ -288,14 +411,16 @@ while running:
                     button.click()
                 button.status = False
 
+            inventory.window.paging = False
             moving_map = False
 
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
+            shift_x = old_mouse_x - x
+            shift_y = old_mouse_y - y
+            old_mouse_x, old_mouse_y = x, y
+
             if moving_map:
-                shift_x = old_mouse_x - x
-                shift_y = old_mouse_y - y
-                old_mouse_x, old_mouse_y = x, y
                 map_x = map_x - shift_x
                 map_y = map_y - shift_y
                 if map_x > 0:
@@ -309,6 +434,10 @@ while running:
                     map_y = -image_size[1] + height
 
                 main_map.move_to(map_x, map_y)
+
+            if inventory.window.paging:
+                inventory.window.pag(inventory.window.shift_y - shift_y)
+
 
     if type_window == 'main_window':
         for object in objects_main['objects']:
@@ -344,6 +473,8 @@ while running:
         for object in objects_map['buttons']:
             object.show()
         show_and_change_all_options()
+        game_time.show()
+        game_time.update_time_on_real_time()
 
     pygame.display.flip()
 

@@ -1,5 +1,6 @@
 import pygame
 import time
+import sqlite3
 from game.images.images import *
 
 
@@ -7,12 +8,20 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 0, 255)
+LIGHT_GREEN = (27, 65, 16)
+BROWN = (74, 47, 4)
 width, height = 0, 0
 
 
 def install_size(size):
     global width, height
     width, height = size
+
+
+def open_file():
+    with open('data/SaveGame.txt', 'r') as f:
+        read_data = f.read()
+    return read_data
 
 
 def change_parametrs(id):
@@ -497,7 +506,7 @@ class Window(Object):
         self.paging = False
         self.mod = True
         self.objects = []
-        self.shift_y = 0
+        self.shift_y = y
         self.width_object = 70
 
     def add_object(self, object):
@@ -506,8 +515,8 @@ class Window(Object):
             x = self.x + 5
         else:
             x = self.x + 5 + self.width // self.column_count
-        x = (len(self.objects) - ((len(self.objects) // self.column_count) * self.column_count)) * (self.width // self.column_count) + self.x + 5
-        y = (len(self.objects) // self.column_count) * self.width_object + self.shift_y + 5
+        x = (len(self.objects) - ((len(self.objects) // self.column_count) * self.column_count)) * (self.width // self.column_count) + self.x
+        y = (len(self.objects) // self.column_count) * self.width_object + self.shift_y
         object.move_to(x, y)
         self.objects.append(object)
 
@@ -515,18 +524,18 @@ class Window(Object):
         self.shift_y = y
         if self.mod:   # следующие действия делают так,
             # чтоб объекты не выходили за границы экрана
-            if self.shift_y > 0:
-                self.shift_y = 0
+            if self.shift_y > self.y:
+                self.shift_y = self.y
             if ((len(self.objects) // self.column_count) + 1) >= (
                     self.height // self.width_object):
 
-                if self.shift_y < -((((len(self.objects) // self.column_count) + 1) - (
+                if self.shift_y < -((((len(self.objects) // self.column_count)) - (
                         self.height // self.width_object))) * self.width_object:
 
-                    self.shift_y = -((((len(self.objects) // self.column_count) + 1) - (
+                    self.shift_y = -((((len(self.objects) // self.column_count)) - (
                             self.height // self.width_object))) * self.width_object
             else:
-                self.shift_y = 0
+                self.shift_y = self.y
 
         for i in range(len(self.objects)):
             object = self.objects[i]
@@ -542,7 +551,7 @@ class Window(Object):
 
 
 class Player:
-    def __init__(self, canvas,  x, y):
+    def __init__(self, canvas,  x, y, game_time):
         self.canvas = canvas
         self.width = 50
         self.height = 50
@@ -553,7 +562,8 @@ class Player:
         self.end_y = y
         self.start_x = x
         self.start_y = y
-        self.inventory = []
+        self.game_time = game_time
+
         self.start_speed = 100
         self.speed = self.start_speed
         self.path_length = 0
@@ -568,25 +578,84 @@ class Player:
         self.poison = 0
         self.exhaustion = 0
         self.radiation = 0
-        self.temperature = 0
+        self.temperature = 36.6
         self.bleeding = 0
+
+        self.change_hunger = 3
+        self.change_water = 5
+        self.change_energy = 2
+        self.change_poison = 0
+        self.change_exhaustion = 0
+        self.change_radiation = 0
+        self.change_temperature = 0
+        self.change_bleeding = 0
+
         self.armor = 0
         self.xp_chemistry = 0
         self.xp_survival = 0
         self.xp_mechanics = 0
         self.xp_sewing = 0
 
-
-
         self.effect_radiation = 0
         self.effect_satiety = 0
         self.effect_energy = 0
+
+    def set_inventory(self, inventory):
+        self.inventory = inventory
+
+
+    def set_parametrs(self, parametrs):
+        parametrs = parametrs.split('</>')[0].split(';')
+
+        self.exhaustion = int(parametrs[0])
+        self.hunger = int(parametrs[1])
+        self.water = int(parametrs[2])
+        self.poison = int(parametrs[3])
+        self.radiation = int(parametrs[4])
+        self.energy = int(parametrs[5])
+        self.bleeding = int(parametrs[6])
+        self.temperature = float(parametrs[7])
+        self.max_heft = int(parametrs[8])
+
+        self.armor = int(parametrs[9])
+        self.xp_chemistry = int(parametrs[10])
+        self.xp_survival = int(parametrs[11])
+        self.xp_mechanics = int(parametrs[12])
+        self.xp_sewing = int(parametrs[13])
+        self.x = int(parametrs[14])
+        self.y = int(parametrs[15])
+
+        self.change_exhaustion = float(parametrs[16])
+        self.change_hunger = float(parametrs[17])
+        self.change_water = float(parametrs[18])
+        self.change_poison = float(parametrs[19])
+        self.change_radiation = float(parametrs[20])
+        self.change_energy = float(parametrs[21])
+        self.change_bleeding = float(parametrs[22])
+        self.change_temperature = float(parametrs[23])
+
+        self.game_time.num_time = int(parametrs[24])
+        self.game_time.update_time()
+
 
     def set_cor(self, x, y):
         self.x = x
         self.y = y
 
+    def change_all_parametrs(self, delte_t):
+        self.hunger -= self.change_hunger * delte_t
+        self.water -= self.change_water * delte_t
+        self.energy -= self.change_energy * delte_t
+        self.poison -= self.change_poison * delte_t
+        self.exhaustion -= self.change_exhaustion * delte_t
+        self.radiation -= self.change_radiation * delte_t
+        self.temperature -= self.change_temperature * delte_t
+        self.bleeding -= self.change_bleeding * delte_t
+
+
     def move_to(self, x, y):
+        if self.inventory.heft > self.max_heft:
+            return
         self.end_x = int(x)
         self.end_y = int(y)
         self.start_x = self.x
@@ -598,13 +667,19 @@ class Player:
         self.passed_x = 0
         self.passed_y = 0
 
-        self.time_for_way = self.path_length / self.speed
-        self.timer = time.time()
+        #   self.time_for_way = self.path_length / self.speed
+        self.game_time.start_thinktime()
         self.moving = True
 
+    def stop(self):
+        self.moving = False
+        self.end_x = self.x
+        self.end_y = self.y
+        self.start_x = self.x
+        self.start_y = self.y
+
     def made_step(self):
-        delte_t = ((time.time() - self.timer))
-        self.timer = time.time()
+        delte_t = self.game_time.change_game_time() / 3600
         shift_x = (self.end_x - self.start_x) * (delte_t / (self.path_length / self.speed))
         shift_y = (self.end_y - self.start_y) * (delte_t / (self.path_length / self.speed))
 
@@ -612,6 +687,7 @@ class Player:
         self.length_y -= abs(shift_y)
         self.passed_x += shift_x
         self.passed_y += shift_y
+        self.change_all_parametrs(delte_t)
 
         if self.length_x < 0 or self.length_y < 0:
             self.x = self.end_x
@@ -627,26 +703,169 @@ class Player:
                                       (self.y - map_y_on_main_map) * zoom + map_y - self.height // 2))
 
 
-class Thing:
-    def __init__(self, canvas, id):
+class Thing(Button):
+    def __init__(self, canvas, id, con, count, strength, font=None):
         self.canvas = canvas
-        self.image = None
+        self.count = count
+        self.font = font
+        self.x = 0
+        self.y = 0
+        self.visibility = True
 
-    def draw(self, x, y):
-        self.canvas.blit(self.image, (x, y))
+        cur = con.cursor()
+        query = f'''SELECT * FROM things
+            WHERE id = {id}'''
+        result = cur.execute(query).fetchone()
+
+        self.id = int(result[0])
+        self.name = result[1]
+        self.heft = int(result[2])
+        self.type = int(result[3])
+        self.start_strength = int(result[4])
+        self.strength = int(strength)
+        self.effect_hunger = int(result[5])
+        self.effect_water = int(result[6])
+        self.effect_energy = int(result[7])
+        self.effect_poison = int(result[8])
+        self.effect_bleeding = int(result[9])
+        self.effect_exhaustion = int(result[10])
+        self.effect_radiation = int(result[11])
+        self.damage = int(result[12])
+        self.armor = int(result[13])
+        self.effect_satiety_ps = int(result[14])
+        self.effect_energy_ps = int(result[15])
+        self.effect_radiation_ps = int(result[16])
+        self.effect_light = int(result[17])
+        self.expenses = result[18]
+        w = ps_width(8.9)
+        h = w
+        self.image = get_free_image(result[19], (w, h))
+        self.width = w
+        self.height = h
+
+        self.functions = []
+
+    def get_text_for_saving(self):
+        return f'{self.id};{self.count};{self.strength}'
+
+
+
+    def show(self):
+        pygame.draw.rect(self.canvas, BROWN, (self.x, self.y, self.width, self.height), ps_height(0.6))
+
+        self.canvas.blit(self.image, (self.x, self.y))
+        if self.font is not None:
+            text = self.font.render(str(self.count), 1, BLACK)
+            self.canvas.blit(text, (self.x + self.width - ps_width(4),
+                                    self.y + self.height - ps_height(4)))
 
 
 class Inventory:
-    def __init__(self, canvas, bg_image, player):
+    def __init__(self, canvas, bg_image, player, parametrs=None):
         self.canvas = canvas
         self.bg_image = bg_image
-        self.heft = 15000
+        self.con = sqlite3.connect("item_base.db")
+        self.heft = 0
         self.player = player
+        player.set_inventory(self)
+
         self.visibility = False
+        if parametrs is None:
+            all_thinks = []
+        else:
+            all_thinks = parametrs.split('</>')[1].split(', ')
+            x = all_thinks[0].split()
+            if all_thinks == ['\n']:
+                all_thinks = []
+
+        self.all_thinks = self.convert_thinks_to_object(all_thinks)
+        self.showing_thinks = self.all_thinks
+
+        x = ps_width(2)
+        y = ps_height(28.51)
+        w = ps_width(44.1)
+        h = ps_height(56.8)
+
+        image = get_bg_for_thinks_in_inventory((w, h))
+        self.window = Window(canvas, image, x + 2, y, w, h, 5)
+        self.window.visibility = True
+        self.window.width_object = ps_width(8.9)
+        for think in self.showing_thinks:
+            self.window.add_object(think)
+
+    def convert_thinks_to_object(self, all_thinks):
+        ready_thinks = []
+        font = pygame.font.Font(None, ps_height(5))
+        for think in all_thinks:
+            id, count, strength = think.split(';')
+            think = Thing(self.canvas, id, self.con, count, strength, font)
+            self.heft += think.heft * int(count)
+
+            ready_thinks.append(think)
+        return ready_thinks
+
+    def append_think(self, think):
+        self.heft += think.heft * int(think.count)
+        self.all_thinks.append(think)
+
+    def get_text_for_saving(self):
+        all_thinks = list(map(lambda x: x.get_text_for_saving(), self.all_thinks))
+        all_thinks = ', '.join(all_thinks)
+        text = all_thinks + '</>'
+        return text
 
     def get_ps_of_load(self):
-        return int(100 * self.heft / self.player.max_heft)
+        ps =  int(100 * self.heft / self.player.max_heft)
+        if ps > 999:
+            ps = 999
+        return ps
 
     def show(self):
         if self.visibility:
+
             self.canvas.blit(self.bg_image, (0, ps_height(5.6)))
+            self.window.render()
+
+
+class GameTime:
+    def __init__(self, t, canvas):
+        self.num_time = t
+        self.canvas = canvas
+        self.time = time.localtime(t)
+        self.timer = 0
+        self.real_timer = time.time()
+        self.font = pygame.font.Font(None, ps_width(2))
+
+    def start_thinktime(self):
+        self.timer = time.time()
+
+    def update_time(self):
+        self.time = time.localtime(self.num_time)
+
+    def change_game_time(self):
+        delte_t = time.time() - self.timer
+        self.num_time += delte_t * 3600
+        self.time = time.localtime(self.num_time)
+        self.timer = time.time()
+        return delte_t * 3600
+
+    def update_time_on_real_time(self):
+        delte_t = time.time() - self.real_timer
+        self.num_time += delte_t
+        self.time = time.localtime(self.num_time)
+        self.real_timer = time.time()
+        return delte_t
+
+    def get_string_of_time(self):
+        hour = str(self.time.tm_hour).rjust(2, '0')
+        min = str(self.time.tm_min).rjust(2, '0')
+        sec = str(self.time.tm_sec).rjust(2, '0')
+        string = f'''{self.time.tm_mday}.{self.time.tm_mon}.{self.time.tm_year
+        } {hour}:{min}:{sec}'''
+        return string
+
+    def show(self):
+        text = self.font.render(self.get_string_of_time(), 1, LIGHT_GREEN)
+        self.canvas.blit(text, (ps_width(44), ps_height(91)))
+
+

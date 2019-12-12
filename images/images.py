@@ -120,8 +120,38 @@ def get_bg_for_inventory(size):
     return image
 
 
+def get_bg_for_thinks_in_inventory(size):
+    image = Image.open('images/bg_for_thinks_in_inventory.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
 def get_image_btn_for_main_map_window(size):
     image = Image.open('images/btn_for_main_map_window.jpg')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+def get_image_btn_new_start_main(size):
+    image = Image.open('images/btn_new_start_main.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+def get_image_btn_new_start_main_click(size):
+    image = Image.open('images/btn_new_start_main_click.png')
     image = image.resize(size, Image.ANTIALIAS)
 
     mode = image.mode
