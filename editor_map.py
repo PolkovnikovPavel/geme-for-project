@@ -9,7 +9,7 @@ def exit(*args):
     running = False
 
 def save(*args):
-    description_map = open('map/description_map.txt', 'w')
+    description_map = open('map/start_description_map.txt', 'w')
     text = ''
     for i in range(BOARD.height):
         for j in range(BOARD.width):
@@ -56,7 +56,7 @@ def create_all_objects():
     buttons_main.append(btn_start_main)
     buttons_map.append(btn_save_map)
 
-    file = open('map/description_map.txt', 'r')
+    file = open('map/start_description_map.txt', 'r')
     font = pygame.font.Font(None, zoom * 10)
     BOARD = Board(screen, 3906 // 10, 2047 // 10, font, 10 * zoom, parametrs=file.read())
 
@@ -76,9 +76,9 @@ def create_all_objects():
         tool_bar_map.add_object(btn)
 
     parametrs = '''0;(x,y);0;0;1
-    NONE
-    NONE
-    NONE'''
+NONE
+NONE
+NONE'''
 
 
 FPS = 100

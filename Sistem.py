@@ -32,12 +32,12 @@ def change_parametrs(id):
             NONE'''
     elif id[0] == 1:
         parametrs = '''1;(x,y);1000;0;0.02
-            1:10000
+            1:10000:0
             NONE
             NONE'''
     elif id[0] == 2:
-        parametrs = '''2;(x,y);0;0;1
-            2:75
+        parametrs = '''2;(x,y);15;0;1
+            2:75:0;3:15:0
             NONE
             NONE'''
     elif id[0] == 3:
@@ -407,9 +407,9 @@ class Call:
 
     def get_text_for_save(self):
         text = f'''{self.id};({self.cor[0]},{self.cor[1]});{self.count};{self.rad};{self.speed}
-    {self.can_find}
-    {self.can_attack}
-    {self.lies}</>
+{self.can_find}
+{self.can_attack}
+{self.lies}</>
 '''
         return text
 
@@ -431,6 +431,7 @@ class Board:
         self.visibility = visibility
         if parametrs is not None:
             parametrs = parametrs.split('</>')
+        parametrs = None
 
         self.board = []
         for j in range(height):
