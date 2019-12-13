@@ -32,12 +32,12 @@ def change_parametrs(id):
             NONE'''
     elif id[0] == 1:
         parametrs = '''1;(x,y);1000;0;0.02
-            1:10000
+            1:10000:0
             NONE
             NONE'''
     elif id[0] == 2:
         parametrs = '''2;(x,y);0;0;1
-            2:75
+            2:75:0
             NONE
             NONE'''
     elif id[0] == 3:
@@ -761,24 +761,32 @@ class Thing(Button):
 
 
 class Inventory:
-    def __init__(self, canvas, bg_image, player, parametrs=None):
+    def __init__(self, canvas, bg_image, player, parametrs=None, mod=1):
         self.canvas = canvas
         self.bg_image = bg_image
         self.con = sqlite3.connect("item_base.db")
         self.heft = 0
         self.player = player
-        player.set_inventory(self)
+        if mod == 1:
+            player.set_inventory(self)
 
         self.visibility = False
+        separator = ';'
         if parametrs is None:
             all_thinks = []
-        else:
+        elif mod == 1:
             all_thinks = parametrs.split('</>')[1].split(', ')
-            x = all_thinks[0].split()
             if all_thinks == ['\n']:
                 all_thinks = []
+        else:
+            separator = ':'
+            if 'NONE' in parametrs.split('\n')[1]:
+                all_thinks = []
+            else:
+                all_thinks = parametrs.split('\n')[1].split(', ')
 
-        self.all_thinks = self.convert_thinks_to_object(all_thinks)
+
+        self.all_thinks = self.convert_thinks_to_object(all_thinks, separator)
         self.showing_thinks = self.all_thinks
 
         x = ps_width(2)
@@ -793,11 +801,11 @@ class Inventory:
         for think in self.showing_thinks:
             self.window.add_object(think)
 
-    def convert_thinks_to_object(self, all_thinks):
+    def convert_thinks_to_object(self, all_thinks, sep=';'):
         ready_thinks = []
         font = pygame.font.Font(None, ps_height(5))
         for think in all_thinks:
-            id, count, strength = think.split(';')
+            id, count, strength = think.split(sep)
             think = Thing(self.canvas, id, self.con, count, strength, font)
             self.heft += think.heft * int(count)
 

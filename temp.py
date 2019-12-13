@@ -17,7 +17,7 @@ def start_new_game(*args):
     description_map.close()
 
     description_player = open('data/SaveGame.txt', 'w')
-    text = '''0;100;100;0;0;100;0;36.6;50000;0;0;0;0;0;1000;1000;0;1.5;3;0;0;4;0;0;622080000</>
+    text = '''0;100;100;0;0;100;0;36.6;50000;0;0;0;0;0;5;5;0;1.5;3;0;0;4;0;0;622080000</>
 21;30;0, 33;5;720, 26;2;0, 25;1;0, 28;1;19000, 4;40;0</>'''
     description_player.write(text)
     description_player.close()
@@ -70,15 +70,21 @@ def save():
 
 
 def start(*args):
-    global type_window, inventory
+    global type_window, inventory, location
     for button in objects_main['objects']:
         button.visibility = False
     for object in objects_main['buttons']:
         object.visibility = False
     main_map.visibility = True
+    player.set_parametrs(open_file())
+
     inventory = Inventory(screen, None, player, parametrs=open_file())
     inventory.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
-    player.set_parametrs(open_file())
+
+    call = BOARD_MAP.get_call_in_bord((player.x, player.y))
+    location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
+    location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
+
     update_map()
 
     type_window = 'main'
@@ -100,8 +106,15 @@ def show_and_change_all_options():
 def opening_inventory(*args):
     global type_window
     inventory.visibility = True
+    location.visibility = False
     player.stop()
     type_window = 'inventory'
+
+
+def change_inventory_type_to_location(*args):
+    inventory.visibility = False
+    location.visibility = True
+
 
 
 def opening_quests(*args):
@@ -277,6 +290,17 @@ def create_all_objects():
     text = Text(screen, ps_width(87.7), 15, player.temperature, font)
     texts_of_options_player.append(text)
 
+    image = get_image_btn_inventory_on_location((ps_width(7.5), ps_height(17.9)))
+    btn = Button(screen, image, ps_width(40), ps_height(8), ps_width(7.5), ps_height(17.9))
+    btn.add_function(change_inventory_type_to_location)
+    objects_inventory['buttons'].append(btn)
+
+    image = get_image_btn_inventory_on_location((ps_width(7.5), ps_height(17.9)))
+    btn = Button(screen, image, ps_width(0.7), ps_height(8), ps_width(7.5), ps_height(17.9))
+    btn.add_function(opening_inventory)
+    objects_inventory['buttons'].append(btn)
+
+
 
 FPS = 100
 ratio = 3 / 5
@@ -310,6 +334,7 @@ image_map = cat_image(main_image_map, (map_x_on_main_map, map_y_on_main_map,
 
 objects_main = {'objects': [], 'buttons': []}
 objects_map = {'objects': [], 'buttons': []}
+objects_inventory = {'objects': [], 'buttons': []}
 type_window = 'main_window'
 
 
@@ -330,6 +355,7 @@ install_size(size)
 game_time = GameTime(0, screen)
 player = Player(screen, player_x, player_y, game_time)
 inventory = Inventory(screen, None, player)
+location = Inventory(screen, None, player)
 
 create_all_objects()
 update_image_map()
@@ -350,12 +376,18 @@ while running:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
-            for button in objects_main['buttons']:
-                if button.check_tip(x, y):
-                    button.status = True
-            for button in objects_map['buttons']:
-                if button.check_tip(x, y):
-                    button.status = True
+            if type_window == 'main_window':
+                for button in objects_main['buttons']:
+                    if button.check_tip(x, y):
+                        button.status = True
+            if type_window == 'main':
+                for button in objects_map['buttons']:
+                    if button.check_tip(x, y):
+                        button.status = True
+            if type_window == 'inventory':
+                for button in objects_inventory['buttons']:
+                    if button.check_tip(x, y):
+                        button.status = True
 
             if type_window == 'main':
                 if event.button == 1:
@@ -402,14 +434,21 @@ while running:
 
         if event.type == pygame.MOUSEBUTTONUP:
             x, y = event.pos
-            for button in objects_main['buttons']:
-                if button.status and button.check_tip(x, y):
-                    button.click()
-                button.status = False
-            for button in objects_map['buttons']:
-                if button.status and button.check_tip(x, y):
-                    button.click()
-                button.status = False
+            if type_window == 'main_window':
+                for button in objects_main['buttons']:
+                    if button.status and button.check_tip(x, y):
+                        button.click()
+                    button.status = False
+            if type_window == 'main':
+                for button in objects_map['buttons']:
+                    if button.status and button.check_tip(x, y):
+                        button.click()
+                    button.status = False
+            if type_window == 'inventory':
+                for button in objects_inventory['buttons']:
+                    if button.status and button.check_tip(x, y):
+                        button.click()
+                    button.status = False
 
             inventory.window.paging = False
             moving_map = False
@@ -464,8 +503,16 @@ while running:
                             player_x_on_map > width_map - 150 or player_y_on_map > height_map - 150):
                         update_map()
 
+                    location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
+                    location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
+
+
     if type_window == 'inventory':
         inventory.show()
+        for object in objects_inventory['objects']:
+            object.show()
+        for object in objects_inventory['buttons']:
+            object.show()
 
     if type_window != 'main_window':
         for object in objects_map['objects']:
