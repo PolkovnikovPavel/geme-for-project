@@ -170,6 +170,17 @@ def get_image_btn_inventory_on_location(size):
     return image
 
 
+def get_image_btn_search(size):
+    image = Image.open('images/btn_search.png')
+    image = image.resize(size, Image.ANTIALIAS)
+
+    mode = image.mode
+    data = image.tobytes()
+    image = pygame.image.fromstring(data, size, mode)
+    return image
+
+
+
 def get_map(size, mod=0):
     map = Image.open('images/map.png')
     map = map.resize(size, Image.ANTIALIAS)

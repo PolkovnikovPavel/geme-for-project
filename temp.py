@@ -9,6 +9,11 @@ def exit(*args):
     running = False
 
 
+def the_end():
+    start_new_game()
+    opening_main_window()
+
+
 def start_new_game(*args):
     description_map = open('map/description_map.txt', 'w')
     with open('map/start_description_map.txt', 'r') as f:
@@ -17,7 +22,7 @@ def start_new_game(*args):
     description_map.close()
 
     description_player = open('data/SaveGame.txt', 'w')
-    text = '''0;100;100;0;0;100;0;36.6;50000;0;0;0;0;0;5;5;0;1.5;3;0;0;4;0;0;622080000</>
+    text = '''0;100;100;0;0;100;0;36.6;50000;0;0;0;0;0;5;5;0;1.5;3;-0.5;0;4;0;0;622080000</>
 21;30;0, 33;5;720, 26;2;0, 25;1;0, 28;1;19000, 4;40;0</>'''
     description_player.write(text)
     description_player.close()
@@ -29,6 +34,13 @@ def continue_game(*args):
         start()
     else:
         start_new_game()
+
+
+def searching_on_call(*args):
+    global location
+    call = BOARD_MAP.get_call_in_bord((player.x, player.y))
+    call.find_things()
+    change_inventory_type_to_location()
 
 
 def save():
@@ -67,6 +79,15 @@ def save():
 
     description_player.write(text)
     description_player.close()
+
+    description_map = open('map/description_map.txt', 'w')
+    text = ''
+    for i in range(BOARD_MAP.height):
+        for j in range(BOARD_MAP.width):
+            description_call = BOARD_MAP.board[i][j].get_text_for_save()
+            text = text + description_call
+    description_map.write(text)
+    description_map.close()
 
 
 def start(*args):
@@ -112,8 +133,15 @@ def opening_inventory(*args):
 
 
 def change_inventory_type_to_location(*args):
+    global location, type_window
+    type_window = 'inventory'
     inventory.visibility = False
+
+    call = BOARD_MAP.get_call_in_bord((player.x, player.y))
+    location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
+    location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
     location.visibility = True
+
 
 
 
@@ -197,7 +225,7 @@ def update_image_map():
 
 def create_all_objects():
     global main_map, BOARD_MAP, parametrs, tool_bar_map, zoom_images, player
-    global texts_of_options_player
+    global texts_of_options_player, btn_searching
 
     image = get_bg_main_window(size)
     bg_main_window = Object(screen, image, 0, 0, *size)
@@ -247,6 +275,7 @@ def create_all_objects():
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
     btn = Button(screen, image, ps_width(71.6), ps_height(89.6), ps_width(14.2), ps_height(9.9))
+    btn.add_function(change_inventory_type_to_location)
     objects_map['buttons'].append(btn)
 
     image = get_image_btn_for_main_map_window((ps_width(14.2), ps_height(9.9)))
@@ -291,14 +320,14 @@ def create_all_objects():
     texts_of_options_player.append(text)
 
     image = get_image_btn_inventory_on_location((ps_width(7.5), ps_height(17.9)))
-    btn = Button(screen, image, ps_width(40), ps_height(8), ps_width(7.5), ps_height(17.9))
-    btn.add_function(change_inventory_type_to_location)
-    objects_inventory['buttons'].append(btn)
-
-    image = get_image_btn_inventory_on_location((ps_width(7.5), ps_height(17.9)))
     btn = Button(screen, image, ps_width(0.7), ps_height(8), ps_width(7.5), ps_height(17.9))
     btn.add_function(opening_inventory)
     objects_inventory['buttons'].append(btn)
+
+    image = get_image_btn_search((ps_width(14), ps_height(5)))
+    btn_searching = Button(screen, image, ps_width(60), ps_height(50), ps_width(14), ps_height(5))
+    btn_searching.add_function(searching_on_call)
+
 
 
 
@@ -313,7 +342,7 @@ map_x, map_y = 0, 0
 BOARD_MAP = None
 
 
-player_x, player_y = 2000, 0
+player_x, player_y = 0, 0
 width_map, height_map = 900, 900
 
 if player_x > width_map / 2:
@@ -354,6 +383,7 @@ install_size(size)
 
 game_time = GameTime(0, screen)
 player = Player(screen, player_x, player_y, game_time)
+player.deathing = the_end
 inventory = Inventory(screen, None, player)
 location = Inventory(screen, None, player)
 
@@ -380,7 +410,7 @@ while running:
                 for button in objects_main['buttons']:
                     if button.check_tip(x, y):
                         button.status = True
-            if type_window == 'main':
+            if type_window != 'main_window':
                 for button in objects_map['buttons']:
                     if button.check_tip(x, y):
                         button.status = True
@@ -388,6 +418,8 @@ while running:
                 for button in objects_inventory['buttons']:
                     if button.check_tip(x, y):
                         button.status = True
+                if location.visibility and btn_searching.check_tip(x, y):
+                    btn_searching.status = True
 
             if type_window == 'main':
                 if event.button == 1:
@@ -417,19 +449,25 @@ while running:
 
             if type_window == 'inventory':
                 if event.button == 5:  # скрол вниз
-                    if inventory.window.check_tip(x, y):
+                    if inventory.window.check_tip(x, y) and inventory.visibility:
                         inventory.window.pag(inventory.window.shift_y - 50)
+                if event.button == 5:
+                    if location.window.check_tip(x, y) and location.visibility:
+                        location.window.pag(location.window.shift_y - 50)
 
                 if event.button == 4:  # скрол вниз
-                    if inventory.window.check_tip(x, y):
+                    if inventory.window.check_tip(x, y) and inventory.visibility:
                         inventory.window.pag(inventory.window.shift_y + 50)
+                if event.button == 4:
+                    if location.window.check_tip(x, y) and location.visibility:
+                        location.window.pag(location.window.shift_y + 50)
 
                 if event.button == 1:   # левое нажатие мыши
-                    if inventory.window.check_tip(x, y):
+                    if inventory.window.check_tip(x, y) and inventory.visibility:
                         inventory.window.paging = True
-
-
-
+                if event.button == 1:
+                    if location.window.check_tip(x, y) and location.visibility:
+                        location.window.paging = True
 
 
         if event.type == pygame.MOUSEBUTTONUP:
@@ -439,7 +477,7 @@ while running:
                     if button.status and button.check_tip(x, y):
                         button.click()
                     button.status = False
-            if type_window == 'main':
+            if type_window != 'main_window':
                 for button in objects_map['buttons']:
                     if button.status and button.check_tip(x, y):
                         button.click()
@@ -450,7 +488,12 @@ while running:
                         button.click()
                     button.status = False
 
+                if location.visibility and btn_searching.check_tip(x, y):
+                    btn_searching.click()
+                    btn_searching.status = False
+
             inventory.window.paging = False
+            location.window.paging = False
             moving_map = False
 
         if event.type == pygame.MOUSEMOTION:
@@ -476,6 +519,8 @@ while running:
 
             if inventory.window.paging:
                 inventory.window.pag(inventory.window.shift_y - shift_y)
+            if location.window.paging:
+                location.window.pag(location.window.shift_y - shift_y)
 
 
     if type_window == 'main_window':
@@ -493,6 +538,7 @@ while running:
             call = BOARD_MAP.get_call_in_bord((player.x, player.y))
             if call is not None:
                 player.speed = player.start_speed * float(call.speed)
+                player.check_condition(call)
 
                 if not player.moving:
                     # вызывается если игрок остановился после
@@ -503,16 +549,16 @@ while running:
                             player_x_on_map > width_map - 150 or player_y_on_map > height_map - 150):
                         update_map()
 
-                    location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
-                    location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
-
 
     if type_window == 'inventory':
         inventory.show()
+        location.show()
         for object in objects_inventory['objects']:
             object.show()
         for object in objects_inventory['buttons']:
             object.show()
+        if location.visibility:
+            btn_searching.show()
 
     if type_window != 'main_window':
         for object in objects_map['objects']:

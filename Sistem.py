@@ -26,17 +26,17 @@ def open_file():
 
 def change_parametrs(id):
     if id[0] == 0:
-        parametrs = '''0;(x,y);0;0;1
+        parametrs = '''0;(x,y);0;-1;1
             NONE
             NONE
             NONE'''
     elif id[0] == 1:
-        parametrs = '''1;(x,y);1000;0;0.02
+        parametrs = '''1;(x,y);1000;0;0.05
             1:10000:0
             NONE
             NONE'''
     elif id[0] == 2:
-        parametrs = '''2;(x,y);15;0;1
+        parametrs = '''2;(x,y);15;0;0.85
                     2:75:0;3:15:0
                     NONE
                     NONE'''
@@ -378,8 +378,8 @@ class Call:
         if parametrs is None:
             self.id = '0'
             self.cor = (x, y)
-            self.count = '0'
-            self.rad = '0'
+            self.count = 0
+            self.rad = '-1'
             self.speed = 1
             self.can_find = 'NONE'
             self.can_attack = 'NONE'
@@ -388,12 +388,59 @@ class Call:
             parametrs = parametrs.split()
             self.id = parametrs[0].split(';')[0]
             self.cor = (x, y)
-            self.count = parametrs[0].split(';')[2]
+            self.count = int(parametrs[0].split(';')[2])
             self.rad = parametrs[0].split(';')[3]
             self.speed = parametrs[0].split(';')[4]
             self.can_find = parametrs[1]
             self.can_attack = parametrs[2]
             self.lies = parametrs[3]
+
+    def find_things(self):
+        if self.count == 0:
+            return
+        can_find = []
+        lies = []
+        all_things_ling = {}
+        all_things_can_find = {}
+        if 'NONE' in self.lies:
+            all_things_ling = {}
+        else:
+            for thing in self.lies.split(';'):
+                id, count, strength = thing.split(':')
+                count = int(count)
+                strength = int(strength)
+                all_things_ling[id] = [count, strength]
+
+        if 'NONE' in self.can_find:
+            all_things_can_find = {}
+        else:
+            for thing in self.can_find.split(';'):
+                id, count, strength = thing.split(':')
+                count = int(count)
+                strength = int(strength)
+                all_things_can_find[id] = [count, strength]
+
+
+        for i in all_things_can_find.keys():
+            id, count, strength = i, *all_things_can_find[i]
+            if id in all_things_ling:
+                all_things_ling[id][0] += count // self.count
+                all_things_can_find[i][0] -= count // self.count
+            else:
+                all_things_ling[id] = [count // self.count, strength]
+                all_things_can_find[i][0] -= count // self.count
+
+        for i in all_things_ling.keys():
+            lies.append(f'{i}:{all_things_ling[i][0]}:{all_things_ling[i][1]}')
+        for i in all_things_can_find.keys():
+            can_find.append(f'{i}:{all_things_can_find[i][0]}:{all_things_can_find[i][1]}')
+
+        self.count -= 1
+        self.lies = ';'.join(lies)
+        self.can_find = ';'.join(can_find)
+
+
+
 
     def change_parametrs(self, parametrs):
         parametrs = parametrs.split()
@@ -407,9 +454,9 @@ class Call:
 
     def get_text_for_save(self):
         text = f'''{self.id};({self.cor[0]},{self.cor[1]});{self.count};{self.rad};{self.speed}
-    {self.can_find}
-    {self.can_attack}
-    {self.lies}</>
+{self.can_find}
+{self.can_attack}
+{self.lies}</>
 '''
         return text
 
@@ -563,6 +610,7 @@ class Player:
         self.start_x = x
         self.start_y = y
         self.game_time = game_time
+        self.deathing = None
 
         self.start_speed = 100
         self.speed = self.start_speed
@@ -642,15 +690,78 @@ class Player:
         self.x = x
         self.y = y
 
+    def check_condition(self, call):
+        self.change_radiation = float(call.rad)
+        self.change_exhaustion = -0.5
+        if self.hunger < 0:
+            self.hunger = 0
+            self.change_exhaustion += 0.6
+
+        if self.water < 0:
+            self.water = 0
+            self.change_exhaustion += 0.8
+
+        if self.energy < 0:
+            self.energy = 100   # сделать так чтоб игрок сразу ложился спать
+
+        if self.poison > 70:
+            self.change_exhaustion += 1.5
+        elif self.poison > 40:
+            self.change_exhaustion += 0.7
+        elif self.poison < 0:
+            self.poison = 0
+
+        if self.radiation < 0:
+            self.radiation = 0
+        elif self.radiation > 60:
+            self.change_exhaustion += 1
+        elif self.radiation > 40:
+            self.change_exhaustion += 0.7
+        elif self.radiation > 15:
+            self.change_exhaustion += 0.4
+
+        if self.temperature > 38:
+            self.change_exhaustion += 1
+            self.change_temperature += 0.1
+        elif self.temperature > 37:
+            self.change_exhaustion += 0.5
+            self.change_temperature += 0.1
+        elif self.temperature < 35:
+            self.change_exhaustion += 0.2
+            self.change_temperature -= 0.1
+        elif self.temperature < 36:
+            self.change_exhaustion += 0.1
+            self.change_temperature -= 0.05
+
+        if self.bleeding < 0:
+            self.bleeding = 0
+        elif self.bleeding > 70:
+            self.change_exhaustion += 2.5
+        elif self.bleeding > 50:
+            self.change_exhaustion += 2
+        elif self.bleeding > 20:
+            self.change_exhaustion += 1
+        if self.bleeding > 0:
+            self.change_exhaustion += 0.1
+            self.change_bleeding -= 0.2
+
+        if self.exhaustion > 100:
+            self.deathing()
+        if self.exhaustion < 0:
+            self.exhaustion = 0
+        if self.exhaustion > 40:
+            self.change_exhaustion -= 0.3
+
+
     def change_all_parametrs(self, delte_t):
         self.hunger -= self.change_hunger * delte_t
         self.water -= self.change_water * delte_t
         self.energy -= self.change_energy * delte_t
-        self.poison -= self.change_poison * delte_t
-        self.exhaustion -= self.change_exhaustion * delte_t
-        self.radiation -= self.change_radiation * delte_t
+        self.poison += self.change_poison * delte_t
+        self.exhaustion += self.change_exhaustion * delte_t
+        self.radiation += self.change_radiation * delte_t
         self.temperature -= self.change_temperature * delte_t
-        self.bleeding -= self.change_bleeding * delte_t
+        self.bleeding += self.change_bleeding * delte_t
 
 
     def move_to(self, x, y):
@@ -673,6 +784,8 @@ class Player:
 
     def stop(self):
         self.moving = False
+        self.x = int(self.x)
+        self.y = int(self.y)
         self.end_x = self.x
         self.end_y = self.y
         self.start_x = self.x
@@ -761,24 +874,33 @@ class Thing(Button):
 
 
 class Inventory:
-    def __init__(self, canvas, bg_image, player, parametrs=None):
+    def __init__(self, canvas, bg_image, player, parametrs=None, mod=1):
         self.canvas = canvas
         self.bg_image = bg_image
         self.con = sqlite3.connect("item_base.db")
         self.heft = 0
         self.player = player
-        player.set_inventory(self)
+        if mod == 1:
+            player.set_inventory(self)
 
         self.visibility = False
+        separator = ';'
         if parametrs is None:
             all_thinks = []
-        else:
+        elif mod == 1:
             all_thinks = parametrs.split('</>')[1].split(', ')
             x = all_thinks[0].split()
             if all_thinks == ['\n']:
                 all_thinks = []
+        else:
+            if 'NONE' in parametrs.split('\n')[3]:
+                all_thinks = []
+            else:
+                all_thinks = parametrs.split('\n')[3].split(';')
+                separator = ':'
 
-        self.all_thinks = self.convert_thinks_to_object(all_thinks)
+
+        self.all_thinks = self.convert_thinks_to_object(all_thinks, separator)
         self.showing_thinks = self.all_thinks
 
         x = ps_width(2)
@@ -793,11 +915,13 @@ class Inventory:
         for think in self.showing_thinks:
             self.window.add_object(think)
 
-    def convert_thinks_to_object(self, all_thinks):
+    def convert_thinks_to_object(self, all_thinks, sep=';'):
         ready_thinks = []
         font = pygame.font.Font(None, ps_height(5))
         for think in all_thinks:
-            id, count, strength = think.split(';')
+            id, count, strength = think.split(sep)
+            if sep == ':':
+                strength = strength.split('</>')[0]
             think = Thing(self.canvas, id, self.con, count, strength, font)
             self.heft += think.heft * int(count)
 
@@ -822,9 +946,8 @@ class Inventory:
 
     def show(self):
         if self.visibility:
-
-            self.canvas.blit(self.bg_image, (0, ps_height(5.6)))
             self.window.render()
+            self.canvas.blit(self.bg_image, (0, ps_height(5.6)))
 
 
 class GameTime:
