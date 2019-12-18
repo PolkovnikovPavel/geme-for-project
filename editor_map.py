@@ -1,6 +1,6 @@
 import pygame
 import os
-from game.Sistem import *
+from game.System import *
 from game.images.images import *
 
 

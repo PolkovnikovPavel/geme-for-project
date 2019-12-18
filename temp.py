@@ -1,7 +1,7 @@
 import pygame
 import os
-from game.Sistem import *
-from game.images.images import *
+from System import *
+from images.images import *
 
 
 def exit(*args):
@@ -37,10 +37,9 @@ def continue_game(*args):
 
 
 def searching_on_call(*args):
-    global location
     call = BOARD_MAP.get_call_in_bord((player.x, player.y))
     call.find_things()
-    change_inventory_type_to_location()
+    location.update_thinks(location.convert_thinks_to_object(call.lies.split(';'), ':'))
 
 
 def save():
@@ -91,7 +90,7 @@ def save():
 
 
 def start(*args):
-    global type_window, inventory, location
+    global type_window, inventory, location, BOARD_MAP
     for button in objects_main['objects']:
         button.visibility = False
     for object in objects_main['buttons']:
@@ -102,6 +101,10 @@ def start(*args):
     inventory = Inventory(screen, None, player, parametrs=open_file())
     inventory.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
 
+    file = open('map/description_map.txt', 'r')
+    font = pygame.font.Font(None, zoom * 10)
+    BOARD_MAP = Board(screen, 3906 // size_cell, 2047 // size_cell, font,
+                      size_cell, parametrs=file.read())
     call = BOARD_MAP.get_call_in_bord((player.x, player.y))
     location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
     location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
@@ -138,8 +141,11 @@ def change_inventory_type_to_location(*args):
     inventory.visibility = False
 
     call = BOARD_MAP.get_call_in_bord((player.x, player.y))
-    location = Inventory(screen, None, player, parametrs=call.get_text_for_save(), mod=2)
-    location.bg_image = get_bg_for_inventory((width, ps_height(83.2)))
+    if 'NONE' not in call.lies:
+        location.update_thinks(location.convert_thinks_to_object(call.lies.split(';'), ':'))
+    else:
+        location.update_thinks(location.convert_thinks_to_object([]))
+
     location.visibility = True
 
 
